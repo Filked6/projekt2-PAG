@@ -30,4 +30,10 @@ def load_shapefile(path: Path, unit_type: str, r: redis):
 
     pipe.execute()
 
-
+def load_all(FILES, r):
+    for type, path in FILES.items():
+        if path.exists():
+            load_shapefile(path, type, r)
+            print(f"Wczytano: {type}")
+        else:
+            print(f"Brak pliku: {path}")

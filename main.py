@@ -1,6 +1,6 @@
 import redis
 from pathlib import Path
-from read_administrative import *
+from load_shp import *
 
 '''Konfig'''
 
@@ -23,11 +23,5 @@ r = redis.Redis(
     decode_responses=True
 )
 
-
 if __name__ == "__main__":
-    for type, path in SHP_FILES.items():
-        if path.exists():
-            load_shapefile(path, type, r)
-            print(f"Wczytano: {type}")
-        else:
-            print(f"Brak pliku: {path}")
+    load_all(SHP_FILES, r)
