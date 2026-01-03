@@ -1,7 +1,6 @@
 import redis
 from pathlib import Path
 from load_shp import *
-from read_administrative import *
 from gui import *
 import sys
 
