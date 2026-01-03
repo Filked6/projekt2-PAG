@@ -1,6 +1,8 @@
 import redis
 from pathlib import Path
 from read_administrative import *
+from gui import *
+import sys
 
 '''Konfig'''
 
@@ -25,9 +27,17 @@ r = redis.Redis(
 
 
 if __name__ == "__main__":
+    """
     for type, path in SHP_FILES.items():
         if path.exists():
             load_shapefile(path, type, r)
             print(f"Wczytano: {type}")
         else:
             print(f"Brak pliku: {path}")
+    """
+    app = QApplication(sys.argv)
+
+    okno = MyApp()
+    okno.show()
+
+    sys.exit(app.exec())
