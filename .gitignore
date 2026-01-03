@@ -4,4 +4,5 @@ pdyWykladowe/
 /Dane/
 /Meteo_2024-12/
 /Meteo_2025-01/
+.venv/
 /__pycache__/
