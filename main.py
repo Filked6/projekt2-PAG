@@ -3,12 +3,17 @@ from pathlib import Path
 from load_shp import *
 from gui import *
 import sys
+import pymongo
 
 '''Konfig'''
 
 # Redis
 REDIS_HOST = "localhost" # 
 REDIS_PORT = 6379
+
+#Mongo
+MONGO_HOST = "localhost"
+MONGO_PORT = 27017
 
 # Folder z danymi
 DATA_DIR = Path("Dane") # folder z danymi
