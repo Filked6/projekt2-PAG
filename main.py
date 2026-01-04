@@ -3,7 +3,6 @@ from pathlib import Path
 from load_shp import *
 from gui import *
 import sys
-from pymongo import MongoClient
 from read_meteo import *
 
 '''Konfig'''
