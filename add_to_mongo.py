@@ -33,7 +33,7 @@ def import_data_to_mongo(path):
                     if filename.endswith(".csv") and filename.startswith(('A', 'B', 'S')):
 
                         file_path = os.path.join(full_path, filename)
-                        print(f"    Przetwarzanie pliku: {filename}")
+                        print(f"Przetwarzanie pliku: {filename}")
                         try:
                             with pd.read_csv(
                                     file_path,
@@ -42,18 +42,22 @@ def import_data_to_mongo(path):
                                     sep=';',
                                     chunksize=chunk_size
                             ) as reader:
+                                #Usuwanie błędnych danych
+                                chunk['Wartosc'] = pd.to_numeric(chunk['Wartosc'], errors='coerce')
+                                chunk = chunk.dropna(subset=['Wartosc'])
+                                chunk = chunk[chunk['Wartosc'] <= 1000]
 
                                 #tylko informacja ile danych dodajemy
-                                licznik_wierszy = 0
+                                rows_counter = 0
                                 for chunk in reader:
                                     #Konwersja do słownika (aby zapisać wszystko na raz) i zapis
-                                    dane_do_zapisu = chunk.to_dict('records')
+                                    data_to_import = chunk.to_dict('records')
 
-                                    if dane_do_zapisu:
-                                        collection.insert_many(dane_do_zapisu)
-                                        licznik_wierszy += len(dane_do_zapisu)
+                                    if data_to_import:
+                                        collection.insert_many(data_to_import)
+                                        rows_counter += len(data_to_import)
 
-                                print(f"      Sukces. Dodano {licznik_wierszy} wierszy.")
+                                print(f"Dodano {rows_counter} wierszy.")
 
                         #Obsługa błędów na wrazie w
                         except Exception as e:

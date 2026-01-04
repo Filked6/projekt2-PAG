@@ -1,10 +1,10 @@
 from PySide6.QtCore import QCoreApplication, QMetaObject, QRect, Qt
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QLabel,
                                QMainWindow, QMenuBar, QPushButton, QStatusBar,
-                               QTableWidget, QWidget, QHeaderView)
+                               QTableWidget, QWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QAbstractItemView)
 from read_meteo import *
 
-
+#Klasa ui otrzymana z designera + parę dorobionych rzeczy
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(u"MainWindow")
@@ -33,6 +33,7 @@ class Ui_MainWindow(object):
         self.frame_2.setGeometry(QRect(0, 80, 791, 461))
         self.tableWidget = QTableWidget(self.frame_2)
         self.tableWidget.setGeometry(QRect(10, 10, 771, 441))
+        self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
@@ -40,6 +41,7 @@ class Ui_MainWindow(object):
         self.statusbar = QStatusBar(MainWindow)
         MainWindow.setStatusBar(self.statusbar)
 
+        #możliwe województwa do wyboru, na razie w ten sposób zrobione, później można to zmienić na pobrane z pliku
         voivodeships = [
             ("Dolnośląskie", "02"), ("Kujawsko-pomorskie", "04"),
             ("Lubelskie", "06"), ("Lubuskie", "08"),
@@ -53,13 +55,14 @@ class Ui_MainWindow(object):
         for name, teryt in sorted(voivodeships):
             self.voivodeshipComboBox.addItem(name, teryt)
 
+        #Możliwe typy danych wraz z ich kodami
         measurement_types = [
-            ("Temperatura powietrza", 1), ("Temperatura gruntu", 2),
-            ("Kierunek wiatru", 3), ("Średnia prędkość wiatru", 4),
-            ("Maksymalna prędkość", 5), ("Suma opadu 10-minutowego", 6),
-            ("Suma opadu dobowego", 7), ("Suma opadu godzinnego", 8),
-            ("Wilgotność względna powietrza", 9),
-            ("Największy poryw w okresie 10m", 10), ("Zapas wody w śniegu", 11)
+            ("Temperatura powietrza", "B00300S"), ("Temperatura gruntu", "B00305A"),
+            ("Kierunek wiatru", "B00202A"), ("Średnia prędkość wiatru", "B00702A"),
+            ("Maksymalna prędkość", "B00703A"), ("Suma opadu 10-minutowego", "B00608S"),
+            ("Suma opadu dobowego", "B00604S"), ("Suma opadu godzinnego", "B00606S"),
+            ("Wilgotność względna powietrza", "B00802A"),
+            ("Największy poryw w okresie 10m", "B00714A"), ("Zapas wody w śniegu", "B00910A")
         ]
         for name, id in measurement_types:
             self.measurComboBox.addItem(name, id)
@@ -71,7 +74,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Meteo Data Browser", None))
         self.searchButton.setText(QCoreApplication.translate("MainWindow", u"Szukaj", None))
 
-
+#Główna alpikacja
 class MyApp(QMainWindow):
     def __init__(self, db):
         super().__init__()
@@ -79,14 +82,19 @@ class MyApp(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.ui.tableWidget.setColumnCount(3)
-        self.ui.tableWidget.setHorizontalHeaderLabels(["Stacja", "Średnia (dzień)", "Średnia (noc)"])
+        #Nadanie ilości kolumn i ich nazw
+        self.ui.tableWidget.setColumnCount(2)
+        self.ui.tableWidget.setHorizontalHeaderLabels(["Data", "Średnia"])
         self.ui.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
+        #pobranie dostępnych lat z bazy
         self.dictYearMonths = get_available_months(self.db)
-
         self.ui.yearComboBox.currentTextChanged.connect(self.update_months)
 
+        #Uruchomienie szukania
+        self.ui.searchButton.clicked.connect(self.on_search_button_clicked)
+
+        #dodanie miesięcy i lat
         self.ui.yearComboBox.clear()
         for year in sorted(self.dictYearMonths.keys(), reverse=True):
             self.ui.yearComboBox.addItem(year)
@@ -94,14 +102,42 @@ class MyApp(QMainWindow):
         if self.ui.yearComboBox.count() > 0:
             self.update_months(self.ui.yearComboBox.currentText())
 
+    #Updatujemy miesiące przy zmianie roku
     def update_months(self, selected_year):
         self.ui.monthComboBox.clear()
         if selected_year in self.dictYearMonths:
             for month in sorted(self.dictYearMonths[selected_year], reverse=True):
                 self.ui.monthComboBox.addItem(month)
 
+    #pobieramy aktualny kod danych aby dla niego później wyszukać dane
     def get_measurement_type(self):
         return self.ui.measurComboBox.currentData()
 
+    #To samo dla województw (nie zrobione TODO)
     def get_selected_voivodeship(self):
         return self.ui.voivodeshipComboBox.currentData()
+
+    #Pobieranie danych i wyświetlenie w tabelce
+    def on_search_button_clicked(self):
+        year = self.ui.yearComboBox.currentText()
+        month = self.ui.monthComboBox.currentText()
+
+        collection_name = f"{month}_{year}"
+        measurment_code = self.ui.measurComboBox.currentData()
+
+        result = get_data_by_measurment(self.db, collection_name, measurment_code)
+
+        if result is not None:
+            self.ui.tableWidget.setRowCount(0)
+
+            for index, row in result.iterrows():
+                row_position = self.ui.tableWidget.rowCount()
+                self.ui.tableWidget.insertRow(row_position)
+
+                # Kolumna 0: Dzień
+                self.ui.tableWidget.setItem(row_position, 0, QTableWidgetItem(str(row['Dzien'])))
+
+                # Kolumna 1: Średnia
+                self.ui.tableWidget.setItem(row_position, 1, QTableWidgetItem(str(row['Srednia'])))
+        else:
+            print("Nie znaleziono danych lub wystąpił błąd.")
