@@ -2,6 +2,7 @@ from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect, Qt)
 from PySide6.QtWidgets import (QApplication, QListWidgetItem, QComboBox, QCheckBox, QFrame, QLabel, QListView,
                                QListWidget, QMainWindow, QMenuBar, QPushButton, QStatusBar, QTableView, QWidget,
                                QHeaderView, QTableWidget)
+from read_meteo import *
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -89,7 +90,7 @@ class Ui_MainWindow(object):
         self.searchButton.setText(QCoreApplication.translate("MainWindow", u"Szukaj", None))
 
 class MyApp(QMainWindow):
-    def __init__(self):
+    def __init__(self, db):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -106,6 +107,8 @@ class MyApp(QMainWindow):
 
         header = self.ui.tableWidget.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        get_available_months(db)
 
     def get_measurment_type(self):
         name = self.ui.measurComboBox.currentText()

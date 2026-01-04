@@ -3,12 +3,13 @@ from pathlib import Path
 from load_shp import *
 from gui import *
 import sys
-import pymongo
+from pymongo import MongoClient
+from read_meteo import *
 
 '''Konfig'''
 
 # Redis
-REDIS_HOST = "localhost" # 
+REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 
 #Mongo
@@ -30,14 +31,13 @@ r = redis.Redis(
     decode_responses=True
 )
 
+db = connect_to_mongo_and_get_data(MONGO_HOST, MONGO_PORT)
 
 if __name__ == "__main__":
 
     app = QApplication(sys.argv)
-
-    okno = MyApp()
+    okno = MyApp(db)
     okno.show()
-
     sys.exit(app.exec())
 
     load_all(SHP_FILES, r)
