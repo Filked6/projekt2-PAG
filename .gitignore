@@ -6,3 +6,4 @@ pdyWykladowe/
 /Meteo_2025-01/
 .venv/
 /__pycache__/
+test_mongo
