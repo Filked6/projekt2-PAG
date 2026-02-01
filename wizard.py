@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFrame,
                                QAbstractItemView, QVBoxLayout, QHBoxLayout)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QMovie, QColor, QPalette
+from start import redis_con
+from redis_explore import *
 
 #Klasa ui otrzymana z designera + parę dorobionych rzeczy
 class Ui_MainWindow(object):
@@ -24,13 +26,19 @@ class Ui_MainWindow(object):
 
         self.yearComboBox = QComboBox(self.frame)
         self.monthComboBox = QComboBox(self.frame)
+
         self.voivodeshipComboBox = QComboBox(self.frame)
+        self.voivodeshipComboBox.currentIndexChanged.connect(self.update_districts)
+
+        self.districtComboBox = QComboBox(self.frame)
+        self.districtComboBox.setFixedWidth(200)
         self.measurComboBox = QComboBox(self.frame)
         self.searchButton = QPushButton(self.frame)
 
         self.top_panel_layout.addWidget(self.yearComboBox)
         self.top_panel_layout.addWidget(self.monthComboBox)
         self.top_panel_layout.addWidget(self.voivodeshipComboBox)
+        self.top_panel_layout.addWidget(self.districtComboBox)
         self.top_panel_layout.addWidget(self.measurComboBox, stretch=1)
         self.top_panel_layout.addWidget(self.searchButton)
 
@@ -40,12 +48,11 @@ class Ui_MainWindow(object):
 
         self.tableWidget = QTableWidget(self.centralwidget)
         self.tableWidget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tablemap_layout.addWidget(self.tableWidget, stretch = 5)
+        self.tablemap_layout.addWidget(self.tableWidget, stretch=5)
 
         self.mapView = QWebEngineView(self.centralwidget)
         self.mapView.setContentsMargins(2, 2, 2, 2)
-        #Generowanie mapy
-        self.tablemap_layout.addWidget(self.mapView, stretch = 3)
+        self.tablemap_layout.addWidget(self.mapView, stretch=3)
         self.main_layout.addLayout(self.tablemap_layout)
 
         MainWindow.setCentralWidget(self.centralwidget)
@@ -60,22 +67,14 @@ class Ui_MainWindow(object):
         QMetaObject.connectSlotsByName(MainWindow)
 
     def add_data_to_combo(self):
-        #możliwe województwa do wyboru, na razie w ten sposób zrobione, później można to zmienić na pobrane z pliku
-        voivodeships = [
-            ("Cała Polska", "00"),
-            ("Dolnośląskie", "02"), ("Kujawsko-pomorskie", "04"),
-            ("Lubelskie", "06"), ("Lubuskie", "08"),
-            ("Łódzkie", "10"), ("Małopolskie", "12"),
-            ("Mazowieckie", "14"), ("Opolskie", "16"),
-            ("Podkarpackie", "18"), ("Podlaskie", "20"),
-            ("Pomorskie", "22"), ("Śląskie", "24"),
-            ("Świętokrzyskie", "26"), ("Warmińsko-mazurskie", "28"),
-            ("Wielkopolskie", "30"), ("Zachodniopomorskie", "32")
-        ]
-        for name, teryt in sorted(voivodeships):
+        r = redis_con()
+        voivodeships = get_voivodeships_dict(r)
+        for teryt, name in voivodeships.items():
             self.voivodeshipComboBox.addItem(name, teryt)
 
-        #Możliwe typy danych wraz z ich kodami
+        self.all_districts = get_districts_grouped(r)
+        self.update_districts()
+
         measurement_types = [
             ("Temperatura powietrza", "B00300S"), ("Temperatura gruntu", "B00305A"),
             ("Kierunek wiatru", "B00202A"), ("Średnia prędkość wiatru", "B00702A"),
@@ -86,6 +85,24 @@ class Ui_MainWindow(object):
         ]
         for name, id in measurement_types:
             self.measurComboBox.addItem(name, id)
+
+    def update_districts(self):
+        self.districtComboBox.clear()
+
+        current_voivodeship_code = self.voivodeshipComboBox.currentData()
+
+        if current_voivodeship_code == "00" or current_voivodeship_code is None:
+            self.districtComboBox.addItem("-", None)
+            self.districtComboBox.setEnabled(False)
+
+        else:
+            self.districtComboBox.setEnabled(True)
+            districts_for_voivodeship = self.all_districts.get(current_voivodeship_code, {})
+
+            self.districtComboBox.addItem(f"Wszystkie powiaty", "all")
+
+            for d_id, d_name in districts_for_voivodeship.items():
+                self.districtComboBox.addItem(d_name, d_id)
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Meteo Data Browser", None))
@@ -140,3 +157,43 @@ class LottieWindow(QWidget):
         """
         self.browser.setHtml(html)
         layout.addWidget(self.browser)
+
+def get_voivodeships_dict(r):
+    geo_data = get_geojson(r, "woj")
+    wojewodztwa = {}
+
+    for feature in geo_data['features']:
+        teryt = feature.get('id')
+
+        props = feature['properties']
+        nazwa = props.get('name')
+
+        if teryt and nazwa:
+            wojewodztwa[teryt] = nazwa.title()
+
+    wojewodztwa["00"] = "Cała Polska"
+
+    return dict(sorted(wojewodztwa.items()))
+
+
+def get_districts_grouped(r):
+    geo_data = get_geojson(r, "powiat")
+
+    grouped_districts = {}
+
+    for feature in geo_data['features']:
+        p_id = feature.get('id')
+        props = feature['properties']
+        name = props.get('name')
+        parent = props.get('parent')
+
+        if p_id and name and parent:
+            if parent not in grouped_districts:
+                grouped_districts[parent] = {}
+
+            grouped_districts[parent][p_id] = name.title()
+
+    for parent in grouped_districts:
+        grouped_districts[parent] = dict(sorted(grouped_districts[parent].items(), key=lambda item: item[1]))
+
+    return grouped_districts

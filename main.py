@@ -33,10 +33,11 @@ r = redis.Redis(
 db = connect_to_mongo_and_get_data(MONGO_HOST, MONGO_PORT)
 
 if __name__ == "__main__":
-
     app = QApplication(sys.argv)
+
     okno = MyApp(db)
     okno.show()
+
     sys.exit(app.exec())
 
     load_all_shp(SHP_FILES, r)
