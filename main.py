@@ -1,5 +1,3 @@
-import redis
-from pathlib import Path
 from redis_load_shp import *
 from gui import *
 import sys
@@ -33,9 +31,10 @@ r = redis.Redis(
 db = connect_to_mongo_and_get_data(MONGO_HOST, MONGO_PORT)
 
 if __name__ == "__main__":
+
     app = QApplication(sys.argv)
 
-    okno = MyApp(db)
+    okno = MyApp(db, r)
     okno.show()
 
     sys.exit(app.exec())

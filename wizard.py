@@ -1,11 +1,9 @@
 import os
 from PySide6.QtCore import QCoreApplication, QMetaObject, Qt
-from PySide6.QtWidgets import (QApplication, QComboBox, QFrame,
-                               QMainWindow, QMenuBar, QPushButton, QStatusBar,
-                               QTableWidget, QWidget, QHeaderView, QLabel,
+from PySide6.QtWidgets import (QComboBox, QFrame,QMenuBar, QPushButton, QStatusBar,
+                               QTableWidget, QWidget,
                                QAbstractItemView, QVBoxLayout, QHBoxLayout)
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtGui import QMovie, QColor, QPalette
 from start import redis_con
 from redis_explore import *
 
@@ -128,7 +126,6 @@ class LottieWindow(QWidget):
         else:
             print(f"Nie znaleziono pliku: {json_path}")
 
-        # Widget przeglądarki
         self.browser = QWebEngineView()
         self.browser.page().setBackgroundColor(Qt.transparent)
         self.browser.setStyleSheet("background: transparent;")
