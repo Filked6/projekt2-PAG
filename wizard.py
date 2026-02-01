@@ -1,6 +1,3 @@
-import sys
-import io
-import folium
 import os
 from PySide6.QtCore import QCoreApplication, QMetaObject, Qt
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame,
@@ -14,7 +11,7 @@ from PySide6.QtGui import QMovie, QColor, QPalette
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1200, 800)
+        MainWindow.resize(1400, 800)
 
         self.centralwidget = QWidget(MainWindow)
         self.main_layout = QVBoxLayout(self.centralwidget)
