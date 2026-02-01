@@ -25,6 +25,19 @@ def list_facilities_by_powiat(r, powiat_id):
         if r.exists(f"facility:{fid}")
     ]
 
+def list_facilities_by_woj(r, woj_id):
+    if woj_id == "00":
+        powiat_id = "0202"
+    else:
+        powiat_id = f"{woj_id}02"
+    ids = r.smembers(f"facility:by_powiat:{powiat_id}")
+    return [
+        json.loads(r.get(f"facility:{fid}"))
+        for fid in ids
+        if r.exists(f"facility:{fid}")
+    ]
+
+
 def list_orphan_facilities(r):
     all_ids = r.smembers("facility:all")
     result = []
