@@ -1,6 +1,6 @@
 import redis
 from pathlib import Path
-from load_shp import *
+from redis_load_shp import *
 from gui import *
 import sys
 from read_meteo import *
@@ -39,4 +39,4 @@ if __name__ == "__main__":
     okno.show()
     sys.exit(app.exec())
 
-    load_all(SHP_FILES, r)
+    load_all_shp(SHP_FILES, r)

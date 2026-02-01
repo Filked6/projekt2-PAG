@@ -6,29 +6,11 @@ from shapely.geometry import shape
 
 def update_facilities_from_geojson(
     geojson_path: str,
-    redis_host: str = "localhost",
-    redis_port: int = 6379,
+    redis_connection: redis,
     reset: bool = False,
 ):
-    """
-    Aktualizuje dane facility w Redisie na podstawie pliku GeoJSON.
-    Relacje przestrzenne (powiat) wyznaczane są na podstawie geometrii
-    zapisanej wcześniej w Redisie (bez użycia plików SHP).
 
-    :param geojson_path: ścieżka do effacility.geojson
-    :param reset: jeśli True – czyści stare facility
-    """
-
-    r = redis.Redis(
-        host=redis_host,
-        port=redis_port,
-        decode_responses=True
-    )
-
-    # =====================
-    # (1) Pobranie powiatów z Redisa
-    # =====================
-    powiat_ids = r.smembers("admin:type:powiat")
+    powiat_ids = redis_connection.smembers("admin:type:powiat")
     if not powiat_ids:
         raise RuntimeError(
             "Brak powiatów w Redisie (admin:type:powiat). "
@@ -38,7 +20,7 @@ def update_facilities_from_geojson(
     powiat_records = []
 
     for pid in powiat_ids:
-        raw = r.get(f"admin:{pid}")
+        raw = redis_connection.get(f"admin:{pid}")
         if not raw:
             continue
 
@@ -55,9 +37,6 @@ def update_facilities_from_geojson(
         crs="EPSG:4326"
     )
 
-    # =====================
-    # (2) Wczytanie GeoJSON facility
-    # =====================
     fac_gdf = gpd.read_file(geojson_path)
 
     if fac_gdf.crs is None:
@@ -65,9 +44,6 @@ def update_facilities_from_geojson(
     elif fac_gdf.crs.to_epsg() != 4326:
         fac_gdf = fac_gdf.to_crs(epsg=4326)
 
-    # =====================
-    # (3) Spatial join (punkt → powiat)
-    # =====================
     joined = gpd.sjoin(
         fac_gdf,
         powiaty_gdf,
@@ -75,22 +51,17 @@ def update_facilities_from_geojson(
         predicate="within"
     )
 
-    # =====================
-    # (4) Reset starej bazy facility (opcjonalnie)
-    # =====================
     if reset:
-        for key in r.scan_iter("facility:*"):
-            r.delete(key)
+        for key in redis_connection.scan_iter("facility:*"):
+            redis_connection.delete(key)
 
-    # =====================
-    # (5) Zapis / aktualizacja w Redisie
-    # =====================
-    pipe = r.pipeline()
+    pipe = redis_connection.pipeline()
     count = 0
 
     for _, row in joined.iterrows():
         fid = (
-            row.get("id")
+            row.get("ifcid")
+            or row.get("id")
             or row.get("gmlid")
             or f"facility_{count}"
         )
@@ -118,4 +89,4 @@ def update_facilities_from_geojson(
 
     pipe.execute()
 
-    print(f"✅ Zaktualizowano {count} obiektów facility")
+    print(f"Zaktualizowano {count} obiektów facility")
