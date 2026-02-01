@@ -104,6 +104,6 @@ def import_data_to_mongo(path):
 
 # Ścieżka do folderu z meteo, w którym znajdują się foldery miesięczne meteo z oryginalna nazwą Meteo_rok_miesiac (np. 08)
 # w tym folderze następnie znajdują się pliki csv
-path = r"C:\Studia\Sezon_3\Programowania_aplikacji_geoinformacyjnych\Projektcik2\Dane\Meteo"
+path = r"Dane\Meteo"
 
 import_data_to_mongo(path)
