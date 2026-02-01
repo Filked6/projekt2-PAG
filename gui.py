@@ -21,7 +21,7 @@ class DataWorker(QThread):
             result = get_data_by_measurment(self.db, self.collection_name, self.measurment_code)
             self.finished_data.emit(result)
         except Exception as e:
-            print(f"Błąd bazy: {e}")
+            print(f"Błąd bazy w wątku: {e}")
             self.finished_data.emit(None)
 
 class MyApp(QMainWindow):
@@ -35,8 +35,8 @@ class MyApp(QMainWindow):
         self.load_map()
 
         # Konfiguracja tabeli
-        self.ui.tableWidget.setColumnCount(2)
-        self.ui.tableWidget.setHorizontalHeaderLabels(["Data", "Średnia"])
+        self.ui.tableWidget.setColumnCount(3)
+        self.ui.tableWidget.setHorizontalHeaderLabels(["Data", "Średnia dzienna", "średnia nocna"])
         self.ui.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         # Dane startowe
@@ -91,6 +91,11 @@ class MyApp(QMainWindow):
                 row_position = self.ui.tableWidget.rowCount()
                 self.ui.tableWidget.insertRow(row_position)
                 self.ui.tableWidget.setItem(row_position, 0, QTableWidgetItem(str(row['Dzien'])))
-                self.ui.tableWidget.setItem(row_position, 1, QTableWidgetItem(str(row['Srednia'])))
+
+                val_day = str(row['Srednia_Dzien']) if pd.notna(row['Srednia_Dzien']) else "-"
+                self.ui.tableWidget.setItem(row_position, 1, QTableWidgetItem(val_day))
+
+                val_night = str(row['Srednia_Noc']) if pd.notna(row['Srednia_Noc']) else "-"
+                self.ui.tableWidget.setItem(row_position, 2, QTableWidgetItem(val_night))
         else:
             print("Błąd: Nie otrzymano danych.")

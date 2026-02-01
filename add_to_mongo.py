@@ -1,8 +1,18 @@
 import pandas as pd
 from pymongo import MongoClient
 import os
+from astral import LocationInfo
+from astral.sun import sun
+from astral_file import determine_day_night
+from zoneinfo import ZoneInfo
 
 def import_data_to_mongo(path):
+    lat = 52.2297
+    lon = 21.0122
+    tz_name = "Europe/Warsaw"
+    tz = ZoneInfo(tz_name)
+    city = LocationInfo("Station", "Poland", tz_name, lat, lon)
+
     # łączenie się z baza danych (jeżeli macie inny port to zmieńcie to tu)
     client = MongoClient("mongodb://localhost:27017/")
     db = client["meteo"]
@@ -35,6 +45,7 @@ def import_data_to_mongo(path):
                         file_path = os.path.join(full_path, filename)
                         print(f"Przetwarzanie pliku: {filename}")
                         try:
+                            rows_counter = 0
                             with pd.read_csv(
                                     file_path,
                                     header=None,
@@ -42,22 +53,44 @@ def import_data_to_mongo(path):
                                     sep=';',
                                     chunksize=chunk_size
                             ) as reader:
-                                #Usuwanie błędnych danych
-                                chunk['Wartosc'] = pd.to_numeric(chunk['Wartosc'], errors='coerce')
-                                chunk = chunk.dropna(subset=['Wartosc'])
-                                chunk = chunk[chunk['Wartosc'] <= 1000]
 
-                                #tylko informacja ile danych dodajemy
-                                rows_counter = 0
                                 for chunk in reader:
-                                    #Konwersja do słownika (aby zapisać wszystko na raz) i zapis
+                                    #Usuwanie błędnych danych
+                                    chunk['Wartosc'] = pd.to_numeric(chunk['Wartosc'], errors='coerce')
+                                    chunk = chunk.dropna(subset=['Wartosc'])
+                                    chunk = chunk[chunk['Wartosc'] <= 1000]
+
+                                    chunk['Data'] = pd.to_datetime(chunk['Data'])
+
+                                    if chunk['Data'].dt.tz is None:
+                                        chunk['Data'] = chunk['Data'].dt.tz_localize(tz)
+                                    else:
+                                        chunk['Data'] = chunk['Data'].dt.tz_convert(tz)
+
+                                    unique_dates = chunk['Data'].dt.date.unique()
+                                    sun_schedule = {}
+
+                                    for single_date in unique_dates:
+                                        try:
+                                            # Obliczamy wschód i zachód dla danej daty
+                                            s = sun(city.observer, date=single_date, tzinfo=tz)
+                                            sun_schedule[single_date] = {
+                                                'sunrise': s['sunrise'],
+                                                'sunset': s['sunset']
+                                            }
+                                        except Exception:
+                                            sun_schedule[single_date] = {
+                                                'sunrise': None,
+                                                'sunset': None
+                                            }
+
+                                    chunk['Pora_czasu'] = chunk.apply(determine_day_night, axis=1, args=(sun_schedule,))
+
                                     data_to_import = chunk.to_dict('records')
 
                                     if data_to_import:
                                         collection.insert_many(data_to_import)
                                         rows_counter += len(data_to_import)
-
-                                print(f"Dodano {rows_counter} wierszy.")
 
                         #Obsługa błędów na wrazie w
                         except Exception as e:
