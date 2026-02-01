@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 import pandas as pd
+from scipy.stats import trim_mean
 
 # Funkcja do łączenia się z mongo
 def connect_to_mongo_and_get_data(host, port):
@@ -31,6 +32,16 @@ def get_data_by_measurment(db, collection_name, measurment_code):
     data = collection.find(parameter_filter, wanted_values)
     data_list = list(data)
 
+    result_cols = [
+        'Dzien', 'Srednia',
+        'Srednia_Dzien', 'Srednia_Noc',
+        'Mediana_Dzien', 'Mediana_Noc',
+        'Srednia_Obcinana_Dzien', 'Srednia_Obcinana_Noc'
+    ]
+
+    if not data_list:
+        return pd.DataFrame(columns=result_cols)
+
     df = pd.DataFrame(data_list)
 
     df['Data'] = pd.to_datetime(df['Data'], utc=True)
@@ -42,24 +53,34 @@ def get_data_by_measurment(db, collection_name, measurment_code):
     overall_avg = df.groupby('Dzien_Data')['Wartosc'].mean().reset_index()
     overall_avg.columns = ['Dzien', 'Srednia']
 
+    def calculate_stats(grouped_df, suffix):
+        stats = grouped_df.groupby('Dzien_Data')['Wartosc'].agg(
+            ['mean', 'median', lambda x: trim_mean(x, 0.1)]
+        ).reset_index()
+
+        stats.columns = ['Dzien', f'Srednia_{suffix}', f'Mediana_{suffix}', f'Srednia_Obcinana_{suffix}']
+        return stats
+
     if 'Pora_czasu' in df.columns:
         day_df = df[df['Pora_czasu'] == 'Dzień']
-        day_avg = day_df.groupby('Dzien_Data')['Wartosc'].mean().reset_index()
-        day_avg.columns = ['Dzien', 'Srednia_Dzien']
+        day_stats = calculate_stats(day_df, "Dzien")
 
         night_df = df[df['Pora_czasu'] == 'Noc']
-        night_avg = night_df.groupby('Dzien_Data')['Wartosc'].mean().reset_index()
-        night_avg.columns = ['Dzien', 'Srednia_Noc']
+        night_stats = calculate_stats(night_df, "Noc")
     else:
-        day_avg = pd.DataFrame(columns=['Dzien', 'Srednia_Dzien'])
-        night_avg = pd.DataFrame(columns=['Dzien', 'Srednia_Noc'])
+        empty_cols = ['Dzien', 'Srednia_Dzien', 'Mediana_Dzien', 'Srednia_Obcinana_Dzien']
+        day_stats = pd.DataFrame(columns=empty_cols)
 
-    result = pd.merge(overall_avg, day_avg, on='Dzien', how='left')
-    result = pd.merge(result, night_avg, on='Dzien', how='left')
+        empty_cols_night = ['Dzien', 'Srednia_Noc', 'Mediana_Noc', 'Srednia_Obcinana_Noc']
+        night_stats = pd.DataFrame(columns=empty_cols_night)
 
-    cols_to_round = ['Srednia', 'Srednia_Dzien', 'Srednia_Noc']
+    result = pd.merge(overall_avg, day_stats, on='Dzien', how='left')
+    result = pd.merge(result, night_stats, on='Dzien', how='left')
+
+    cols_to_round = result.columns.drop('Dzien')
     result[cols_to_round] = result[cols_to_round].round(2)
 
     result = result.sort_values('Dzien')
+    result = result[result_cols]
 
     return result

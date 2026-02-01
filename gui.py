@@ -35,8 +35,8 @@ class MyApp(QMainWindow):
         self.load_map()
 
         # Konfiguracja tabeli
-        self.ui.tableWidget.setColumnCount(3)
-        self.ui.tableWidget.setHorizontalHeaderLabels(["Data", "Średnia dzienna", "średnia nocna"])
+        self.ui.tableWidget.setColumnCount(7)
+        self.ui.tableWidget.setHorizontalHeaderLabels(["Data", "Śr. dzienna", "śr. nocna", "Mediana dzienna", "Mediana nocna", "śr. ob. dzienna", "śr. ob. nocna"])
         self.ui.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         # Dane startowe
@@ -97,5 +97,17 @@ class MyApp(QMainWindow):
 
                 val_night = str(row['Srednia_Noc']) if pd.notna(row['Srednia_Noc']) else "-"
                 self.ui.tableWidget.setItem(row_position, 2, QTableWidgetItem(val_night))
+
+                val_med_day = str(row['Mediana_Dzien']) if pd.notna(row['Mediana_Dzien']) else "-"
+                self.ui.tableWidget.setItem(row_position, 3, QTableWidgetItem(val_med_day))
+
+                val_med_night = str(row['Mediana_Noc']) if pd.notna(row['Mediana_Noc']) else "-"
+                self.ui.tableWidget.setItem(row_position, 4, QTableWidgetItem(val_med_night))
+
+                val_avg_day = str(row['Srednia_Obcinana_Dzien']) if pd.notna(row['Srednia_Obcinana_Dzien']) else "-"
+                self.ui.tableWidget.setItem(row_position, 5, QTableWidgetItem(val_avg_day))
+
+                val_avg_night = str(row['Srednia_Obcinana_Noc']) if pd.notna(row['Srednia_Obcinana_Noc']) else "-"
+                self.ui.tableWidget.setItem(row_position, 6, QTableWidgetItem(val_avg_night))
         else:
             print("Błąd: Nie otrzymano danych.")
