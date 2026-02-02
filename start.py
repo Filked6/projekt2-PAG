@@ -44,7 +44,7 @@ r = redis.Redis(
 
 path_meteo = r"Dane\Meteo"
 
-# import_data_to_mongo(path_meteo, MONGO_HOST, MONGO_PORT)            # import danych meteo 
+import_data_to_mongo(path_meteo, MONGO_HOST, MONGO_PORT)            # import danych meteo 
 
 load_all_shp(SHP_FILES, r)                  # wczytywanie danych shp do redisa ZAWSZE przed stacjami
 

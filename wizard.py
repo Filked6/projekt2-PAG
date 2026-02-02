@@ -4,8 +4,14 @@ from PySide6.QtWidgets import (QComboBox, QFrame,QMenuBar, QPushButton, QStatusB
                                QTableWidget, QWidget,
                                QAbstractItemView, QVBoxLayout, QHBoxLayout)
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from start import redis_con
 from redis_explore import *
+
+def redis_con(REDIS_HOST = "localhost", REDIS_PORT = 6379):
+    return redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        decode_responses=True
+    )
 
 #Klasa ui otrzymana z designera + parę dorobionych rzeczy
 class Ui_MainWindow(object):
