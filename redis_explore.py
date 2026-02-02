@@ -30,6 +30,7 @@ def list_facilities_by_powiat(r: redis.Redis, powiat_id: str):
 
 
 def list_facilities_by_woj(r: redis.Redis, woj_id: str):
+    """Zwraca listę pełnych obiektów stacji (JSON) dla danego województwa."""
     powiat_ids = r.smembers(f"admin:children:{woj_id}")
 
     pipe = r.pipeline()
@@ -88,7 +89,7 @@ def list_all_facilities(r: redis.Redis):
     return all_facilities
 
 
-def list_orphan_facilities(r):
+def list_orphan_facilities(r): #stacje poza polską
     all_ids = r.smembers("facility:all")
     result = []
 
@@ -99,7 +100,7 @@ def list_orphan_facilities(r):
 
     return result
 
-def list_powiaty_by_woj(r, woj_id):
+def list_powiaty_by_woj(r, woj_id): #lista powiatów by województwie
     ids = r.smembers(f"admin:children:{woj_id}")
     return [
         json.loads(r.get(f"admin:{pid}"))

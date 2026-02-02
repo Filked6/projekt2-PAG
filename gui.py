@@ -7,7 +7,7 @@ from wizard import Ui_MainWindow, LottieWindow
 import json
 from redis_explore import list_facilities_by_powiat, list_facilities_by_woj, list_all_facilities
 
-
+# Wątek do pracy na danych
 class DataWorker(QThread):
     finished_data = Signal(object, object)
 
@@ -29,7 +29,7 @@ class DataWorker(QThread):
             )
             self.finished_data.emit(table_data, map_values)
         except Exception as e:
-            print(f"Błąd bazy w wątku: {e}")
+            print(f"Błąd bazy w wątku: {e}") #żeby się aplikacj nie wywalała przy błędach
             self.finished_data.emit(None, None)
 
 
@@ -41,12 +41,13 @@ class MyApp(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.okno_lottie = LottieWindow("loading.json")
+        self.okno_lottie = LottieWindow("loading.json")  #animacja ładowania 
 
         self.voivodeship_data = None
         self.current_stations = []
         self.current_map_values = {}
 
+        # wczytywanie województw z pliku
         try:
             with open("gadm41_POL_1.json", "r", encoding="utf-8") as f:
                 self.voivodeship_data = json.load(f)
@@ -76,6 +77,7 @@ class MyApp(QMainWindow):
 
         self.load_map()
 
+        # tabelka
         self.ui.tableWidget.setColumnCount(7)
         self.ui.tableWidget.setHorizontalHeaderLabels(
             ["Data", "Śr. dzienna", "śr. nocna", "Mediana dzienna", "Mediana nocna", "śr. ob. dzienna",
@@ -86,12 +88,14 @@ class MyApp(QMainWindow):
         self.ui.yearComboBox.currentTextChanged.connect(self.update_months)
         self.ui.searchButton.clicked.connect(self.on_search_button_clicked)
 
+        # wybór daty
         self.ui.yearComboBox.clear()
         for year in sorted(self.dictYearMonths.keys(), reverse=True):
             self.ui.yearComboBox.addItem(year)
         if self.ui.yearComboBox.count() > 0:
             self.update_months(self.ui.yearComboBox.currentText())
 
+    # warstwa województw
     def add_geojson_layer(self, m, geo_data):
         if not geo_data: return
         style = {'color': 'black', 'weight': 2, 'fillColor': '#00000000'}
@@ -100,6 +104,7 @@ class MyApp(QMainWindow):
             tooltip=folium.GeoJsonTooltip(fields=['NAME_1'], aliases=['Województwo:'])
         ).add_to(m)
 
+    # warstwa stacji
     def add_stations_layer(self, m):
         if not self.current_stations:
             return
@@ -141,11 +146,13 @@ class MyApp(QMainWindow):
 
         print(f"Narysowano {count} szpileczek na mapie.")
 
+    #zapis mapy do html do wyświetlenia
     def save_and_show_map(self, m):
         data = io.BytesIO()
         m.save(data, close_file=False)
         self.ui.mapView.setHtml(data.getvalue().decode(), QUrl("http://localhost"))
 
+    #pierwsze wczytanie mapy
     def load_map(self):
         start_position = [52.00, 19.00]
         start_zoom = 6
@@ -153,6 +160,7 @@ class MyApp(QMainWindow):
         self.add_geojson_layer(m, self.voivodeship_data)
         self.save_and_show_map(m)
 
+    #aktualizacja mapy
     def update_map_view(self):
         code = self.ui.voivodeshipComboBox.currentData()
         coords = self.voivodeship_coords.get(code, self.voivodeship_coords["00"])
@@ -164,14 +172,16 @@ class MyApp(QMainWindow):
 
         self.save_and_show_map(m)
 
+    # aktualizacja miesięcy po wyborze roku
     def update_months(self, selected_year):
         self.ui.monthComboBox.clear()
         if selected_year in self.dictYearMonths:
             for month in sorted(self.dictYearMonths[selected_year], reverse=True):
                 self.ui.monthComboBox.addItem(month)
 
+    # przycisk 'szukaj'
     def on_search_button_clicked(self):
-        self.okno_lottie.show()
+        self.okno_lottie.show()             #animacja łapki na czas działania
         self.ui.searchButton.setEnabled(False)
         QApplication.processEvents()
 
@@ -185,12 +195,12 @@ class MyApp(QMainWindow):
 
         self.current_stations = []
 
-        if woj_code == "00" or woj_code is None:
+        if woj_code == "00" or woj_code is None:                                    # cała polska
             self.current_stations = list_all_facilities(self.r)
         else:
-            if pow_code == "all" or pow_code is None:
+            if pow_code == "all" or pow_code is None:                               # województwo
                 self.current_stations = list_facilities_by_woj(self.r, woj_code)
-            else:
+            else:                                                                   # powiat
                 self.current_stations = list_facilities_by_powiat(self.r, pow_code)
 
         station_ids = [s.get('id') for s in self.current_stations if s.get('id')]
@@ -200,13 +210,12 @@ class MyApp(QMainWindow):
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
+    # odbiór wyników
     def handle_result(self, result_table, result_map_values):
-        self.okno_lottie.close()
-        self.ui.searchButton.setEnabled(True)
-
         self.current_map_values = result_map_values if result_map_values else {}
         self.update_map_view()
 
+        # uzupełnienie tabeli
         if result_table is not None:
             self.ui.tableWidget.setRowCount(0)
             for index, row in result_table.iterrows():
@@ -234,3 +243,6 @@ class MyApp(QMainWindow):
                 self.ui.tableWidget.setItem(row_position, 6, create_item(get_fmt('Srednia_Obcinana_Noc')))
         else:
             print("Brak danych w bazie.")
+
+        self.okno_lottie.close()                                        # wyłączenie animacji wyszukiwania
+        self.ui.searchButton.setEnabled(True)
