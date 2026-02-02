@@ -6,25 +6,25 @@ from astral.sun import sun
 from astral_file import determine_day_night
 from zoneinfo import ZoneInfo
 
-def import_data_to_mongo(path):
-    lat = 52.2297
+def import_data_to_mongo(path, host, port):
+    lat = 52.2297             # współrzędne  
     lon = 21.0122
-    tz_name = "Europe/Warsaw"
+    tz_name = "Europe/Warsaw" # strefa czasowa
     tz = ZoneInfo(tz_name)
     city = LocationInfo("Station", "Poland", tz_name, lat, lon)
 
-    client = MongoClient("mongodb://localhost:27017/")
+    client = MongoClient(f"mongodb://{host}:{port}/")
     db = client["meteo"]
 
     print(f"Rozpoczynanie importu danych z folderu: {path}")
-    chunk_size = 50000
+    chunk_size = 50000  # chumkowanie dla szybkości
 
-    for folder_name in os.listdir(path):
-        full_path = os.path.join(path, folder_name)
+    for folder_name in os.listdir(path): 
+        full_path = os.path.join(path, folder_name) 
 
-        if os.path.isdir(full_path) and folder_name.startswith("Meteo_"):
+        if os.path.isdir(full_path) and folder_name.startswith("Meteo_"):   
             try:
-                folder_name_parts = folder_name.split("_")
+                folder_name_parts = folder_name.split("_")  #format nazwy folderu: Meteo_{ROK}_{MIESIAC}
                 year = folder_name_parts[1]
                 month = folder_name_parts[2]
 
@@ -34,7 +34,7 @@ def import_data_to_mongo(path):
                 print(f"Wchodzę do folderu: {folder_name} (Kolekcja: {collection_name})")
 
                 for filename in os.listdir(full_path):
-                    if filename.endswith(".csv") and filename.startswith(('A', 'B', 'S')):
+                    if filename.endswith(".csv") and filename.startswith('B') : #pomijamy pliki takie jak kody stacji itp.
 
                         file_path = os.path.join(full_path, filename)
                         print(f"Przetwarzanie pliku: {filename}")
@@ -93,6 +93,3 @@ def import_data_to_mongo(path):
             except IndexError:
                 print(f"Folder o nietypowej nazwie: {folder_name}. Pomijanie.")
 
-path = r"Dane\Meteo"
-
-import_data_to_mongo(path)

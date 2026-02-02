@@ -116,24 +116,25 @@ class MyApp(QMainWindow):
 
             coords = station.get('geometry', {}).get('coordinates')
             props = station.get('properties', {})
-            name = props.get('name', 'Stacja')
+            ident = props.get('name', 'Stacja') #identyfikatoe
+            name = props.get('name1', 'Stacja') #nazwa
 
-            tooltip_text = f"<b>{name}</b><br>Średnia: {value_info}"
+            tooltip_text = f"<b>{name}</b><br>id: {ident}<br>Średnia: {value_info}"
 
             if coords:
                 lat, lon = coords[1], coords[0]
 
-                # 3. Rysujemy SZPILECZKĘ (CircleMarker)
+                # Rysujemy SZPILECZKĘ 
                 folium.CircleMarker(
                     location=[lat, lon],
-                    radius=4,  # Rozmiar szpileczki
-                    color='black',  # Kolor obwódki
-                    weight=1,  # Grubość obwódki
+                    radius=4,          
+                    color='black',    
+                    weight=1,
                     fill=True,
-                    fill_color='red',  # Wypełnienie
-                    fill_opacity=1.0,  # Nieprzezroczystość (1.0 = pełny kolor)
-                    tooltip=tooltip_text,  # Dymek po najechaniu
-                    popup=tooltip_text  # Dymek po kliknięciu
+                    fill_color='red',
+                    fill_opacity=1.0,
+                    tooltip=tooltip_text,   # Tooltip
+                    popup=tooltip_text      # Popup
                 ).add_to(m)
 
                 count += 1

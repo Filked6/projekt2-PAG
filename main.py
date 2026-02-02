@@ -39,4 +39,3 @@ if __name__ == "__main__":
 
     sys.exit(app.exec())
 
-    load_all_shp(SHP_FILES, r)

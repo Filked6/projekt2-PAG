@@ -4,10 +4,22 @@ import geopandas as gpd
 from redis_update_facilities import *
 from redis_load_shp import *
 from redis_explore import *
+from add_to_mongo import *
+
+'''
+Plik do jednorazowego uruchomienia i wczytania danych do baz danych.
+Wymagane jest uprzednie uruchomienie baz odpowiednio na portach:
+6379    dla Redisa
+27017   dla MongoDB
+'''
 
 # Redis
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
+
+# Mongo
+MONGO_HOST = "localhost"
+MONGO_PORT = 27017
 
 # Folder z danymi
 DATA_DIR = Path("Dane") # folder z danymi
@@ -30,19 +42,11 @@ r = redis.Redis(
     decode_responses=True
 )
 
-#load_all_shp(SHP_FILES, r)                  # wczytywanie danych shp do redisa ZAWSZE przed stacjami
+path_meteo = r"Dane\Meteo"
 
-#update_facilities_from_geojson(f"{DATA_DIR}/effacility.geojson", r, True) # wczytywanie stacji do redisa
+# import_data_to_mongo(path_meteo, MONGO_HOST, MONGO_PORT)            # import danych meteo 
 
-geojson_woj = get_geojson(r, "woj")         # geojson z wszytkimi wojwództwami
-geojson_powiat = get_geojson(r, "powiat")   # geojson z wszytkimi powiatami
+load_all_shp(SHP_FILES, r)                  # wczytywanie danych shp do redisa ZAWSZE przed stacjami
 
-a = list_facilities_by_powiat(r, "2411")        # geojson zawierający id == nazwie i wspólrzędne stacji wg. powiatu
-b = list_orphan_facilities(r)                   # geojson zawierający id == nazwie i wspólrzędne stacji poza powiatami
+update_facilities_from_geojson(f"{DATA_DIR}/effacility.geojson", r, True) # wczytywanie stacji do redisa
 
-#with open("podglad_powiatow.json", "w", encoding="utf-8") as f:
-    #json.dump(geojson_powiat, f, indent=4, ensure_ascii=False)
-
-#list_powiaty_by_woj(r, "02")                # geojson zawierający id, nazwie i granicę powiatu wg. województwa
-
-#r.flushdb() # tego raczej nie dajemy do kodu ale jak chcesz wywalić wszystko z redisa to to
