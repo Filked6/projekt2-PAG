@@ -7,7 +7,6 @@ from shapely.geometry import shape
 Funkcja do wczytywania stacji do redisa, wraz z przypisaniem do powiatów
 '''
 
-
 def update_facilities_from_geojson(
     geojson_path: str,
     redis_connection: redis,
